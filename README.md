@@ -1,6 +1,13 @@
 # NodeJS-DuinoCoin-Miner
 A **[duino-coin](https://duinocoin.com/)**.miner made in NodeJS.
 
+## Installation
+
+Install the dependencies
+```bash
+npm i
+```
+
 ****
 ### Arguments:
 * **Username** -> *Your username*
