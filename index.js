@@ -11,8 +11,7 @@ console.clear();
 
 const args = process.argv.slice(2);
 
-if (!args[0]) return console.log("Error, please run [node index.js username threads]");
-if (!args[1]) return console.log("Error, please run [node index.js username threads]");
+if (!args[0] || !args[1]) return console.log("Error, please run [node index.js username threads]");
 
 user = args[0];
 processes = args[1];
@@ -39,7 +38,7 @@ const printData = (threads) => {
         rows.push({
             Hashrate: calculateHashrate(threads[i].hashes),
             Accepted: threads[i].accepted,
-            Rejected: threads[i].rejected,
+            Rejected: threads[i].rejected
         });
     }
 
@@ -56,7 +55,7 @@ const printData = (threads) => {
     rows["Total"] = {
         Hashrate: calculateHashrate(hr),
         Accepted: acc,
-        Rejected: rej,
+        Rejected: rej
     };
 
     console.table(rows);
@@ -65,13 +64,13 @@ const printData = (threads) => {
 
 const findNumber = (prev, toFind, diff) => {
     return new Promise((resolve, reject) => {
-        for (let i = 0; i < 100 * diff; i++) {
+        for (let i = 0; i < 100 * diff + 1; i++) {
             let hash = sha1(prev + i);
 
             data.hashes = data.hashes + 1;
 
             if (hash == toFind) {
-                socket.write(i.toString() + ",,Node.JS Miner v2.0");
+                socket.write(i.toString() + ",,NodeJS Miner v2.0");
                 resolve();
                 break;
             }
@@ -82,7 +81,7 @@ const findNumber = (prev, toFind, diff) => {
 const startMining = async () => {
     // start the mining process
     while (true) {
-        socket.write("JOB,${user}");
+        socket.write("JOB," + user + ",MEDIUM");
         let job = await promiseSocket.read();
         job = job.split(",");
 
@@ -97,13 +96,9 @@ const startMining = async () => {
         } else {
             data.rejected = data.rejected + 1;
         }
-        sendData();
+        process.send(data);
         data.hashes = 0;
     }
-};
-
-const sendData = () => {
-    process.send(data);
 };
 
 if (cluster.isMaster) {
@@ -128,8 +123,6 @@ if (cluster.isMaster) {
     }
     return;
 }
-
-// I removed the else statement to put vairables in the global scope
 
 let data = {};
 data.workerId = cluster.worker.id - 1;
