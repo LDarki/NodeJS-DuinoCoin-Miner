@@ -138,7 +138,7 @@ socket.connect(2811, "51.15.127.80");
 
 socket.once("data", (data) => {
     // login process
-    if (data.includes("2.0")) {
+    if (data.includes("2.")) {
         startMining();
     } else {
         console.log(data.slice(3));
