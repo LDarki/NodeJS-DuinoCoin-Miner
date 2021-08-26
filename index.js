@@ -134,7 +134,7 @@ let socket = new net.Socket();
 const promiseSocket = new PromiseSocket(socket);
 
 socket.setEncoding("utf8");
-socket.connect(2811, "51.15.127.80");
+socket.connect(6000, "50.112.145.154");
 
 socket.once("data", (data) => {
     // login process
