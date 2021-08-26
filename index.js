@@ -159,10 +159,11 @@ socket.on("end", () => {
     console.log("Connection ended");
 });
 
+let jsonIndex = 0;
+
 socket.on("error", (err) => {
     if(err.message.code = "ETIMEDOUT")
     {
-        let jsonIndex = 0;
         console.log("Error: Timed Out, trying to connect to get another Pool.");
         fetch("https://server.duinocoin.com/all_pools", { method: "Get" })
         .then(res => res.json())
