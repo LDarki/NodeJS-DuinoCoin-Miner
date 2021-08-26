@@ -5,9 +5,9 @@
   "main": "main.js",
   "dependencies": {
     "js-sha1": "^0.6.0",
+    "node-fetch": "^2.6.1",
     "promise-socket": "^6.0.3"
   },
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

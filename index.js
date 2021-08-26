@@ -3,6 +3,7 @@ const sha1 = require("js-sha1");
 const cluster = require("cluster");
 const net = require("net");
 const RL = require("readline");
+const fetch = require('node-fetch');
 
 let user = "",
     processes = 1;
@@ -132,9 +133,17 @@ data.accepted = 0;
 
 let socket = new net.Socket();
 const promiseSocket = new PromiseSocket(socket);
+let lastPool = "";
 
 socket.setEncoding("utf8");
-socket.connect(6000, "50.112.145.154");
+
+fetch("https://server.duinocoin.com/all_pools", { method: "Get" })
+.then(res => res.json())
+.then((json) => {
+    let poolJson = json.result[0];
+    lastPool = poolJson.name;
+    socket.connect(poolJson.port, poolJson.ip);
+});
 
 socket.once("data", (data) => {
     // login process
@@ -151,5 +160,23 @@ socket.on("end", () => {
 });
 
 socket.on("error", (err) => {
+    if(err.message.code = "ETIMEDOUT")
+    {
+        let jsonIndex = 0;
+        console.log("Error: Timed Out, trying to connect to get another Pool.");
+        fetch("https://server.duinocoin.com/all_pools", { method: "Get" })
+        .then(res => res.json())
+        .then((json) => {
+            let poolJson = json.result[0];
+            jsonIndex = 0;
+            if(poolJson.name == lastPool) 
+            {
+                poolJson = json.result[jsonIndex+1];
+                jsonIndex++;
+            }
+            lastPool = poolJson.name;
+            socket.connect(poolJson.port, poolJson.ip);
+        });
+    }
     console.log(`Socket error: ${err}`);
 });
