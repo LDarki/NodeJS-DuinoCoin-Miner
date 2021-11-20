@@ -137,10 +137,10 @@ let lastPool = "";
 
 socket.setEncoding("utf8");
 
-fetch("https://server.duinocoin.com/all_pools", { method: "Get" })
+fetch("https://server.duinocoin.com/getPool", { method: "Get" })
 .then(res => res.json())
 .then((json) => {
-    let poolJson = json.result[0];
+    let poolJson = json[];
     lastPool = poolJson.name;
     socket.connect(poolJson.port, poolJson.ip);
 });
@@ -165,16 +165,11 @@ socket.on("error", (err) => {
     if(err.message.code = "ETIMEDOUT")
     {
         console.log("Error: Timed Out, trying to connect to get another Pool.");
-        fetch("https://server.duinocoin.com/all_pools", { method: "Get" })
+        fetch("https://server.duinocoin.com/getPool", { method: "Get" })
         .then(res => res.json())
         .then((json) => {
-            let poolJson = json.result[0];
+            let poolJson = json[0];
             jsonIndex = 0;
-            if(poolJson.name == lastPool) 
-            {
-                poolJson = json.result[jsonIndex+1];
-                jsonIndex++;
-            }
             lastPool = poolJson.name;
             socket.connect(poolJson.port, poolJson.ip);
         });
