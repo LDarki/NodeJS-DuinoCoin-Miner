@@ -71,7 +71,7 @@ const findNumber = (prev, toFind, diff) => {
             data.hashes = data.hashes + 1;
 
             if (hash == toFind) {
-                socket.write(i.toString() + ",,NodeJS Miner v2.0");
+                socket.write(i.toString() + ","+data.hashes+",NodeJS Miner v2.0");
                 resolve();
                 break;
             }
@@ -92,10 +92,11 @@ const startMining = async () => {
 
         await findNumber(prev, toFind, diff);
         const str = await promiseSocket.read();
-        if (str == "GOOD") {
-            data.accepted = data.accepted + 1;
-        } else {
+
+        if (str.includes("BAD")) {
             data.rejected = data.rejected + 1;
+        } else {
+            data.accepted = data.accepted + 1;
         }
         process.send(data);
         data.hashes = 0;
@@ -140,9 +141,14 @@ socket.setEncoding("utf8");
 fetch("https://server.duinocoin.com/getPool", { method: "Get" })
 .then(res => res.json())
 .then((json) => {
-    let poolJson = json[];
-    lastPool = poolJson.name;
-    socket.connect(poolJson.port, poolJson.ip);
+    let poolJson = json;
+    if(poolJson.success == true) {
+        lastPool = poolJson.name;
+        socket.connect(poolJson.port, poolJson.ip);
+    }
+    else {
+        console.log("Error, could not get pool");
+    }
 });
 
 socket.once("data", (data) => {
@@ -159,8 +165,6 @@ socket.on("end", () => {
     console.log("Connection ended");
 });
 
-let jsonIndex = 0;
-
 socket.on("error", (err) => {
     if(err.message.code = "ETIMEDOUT")
     {
@@ -169,9 +173,13 @@ socket.on("error", (err) => {
         .then(res => res.json())
         .then((json) => {
             let poolJson = json[0];
-            jsonIndex = 0;
-            lastPool = poolJson.name;
-            socket.connect(poolJson.port, poolJson.ip);
+            if(json.success == true) {
+                lastPool = poolJson.name;
+                socket.connect(poolJson.port, poolJson.ip);
+            }
+            else {
+                console.log("Error, could not get pool");
+            }
         });
     }
     console.log(`Socket error: ${err}`);
