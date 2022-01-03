@@ -71,7 +71,7 @@ const findNumber = (prev, toFind, diff) => {
             data.hashes = data.hashes + 1;
 
             if (hash == toFind) {
-                socket.write(i.toString() + ","+data.hashes+",NodeJS Miner v2.0");
+                socket.write(i.toString() + ",NodeJS Miner v2.0");
                 resolve();
                 break;
             }
