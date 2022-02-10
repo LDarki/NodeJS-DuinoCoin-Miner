@@ -4,9 +4,13 @@
   "description": "Duino-Coin NodeJS miner",
   "main": "main.js",
   "dependencies": {
+    "benchmark": "^2.1.4",
     "js-sha1": "^0.6.0",
+    "jshashes": "^1.0.8",
     "node-fetch": "^2.6.1",
-    "promise-socket": "^6.0.3"
+    "promise-socket": "^6.0.3",
+    "rusha": "^0.8.14",
+    "sha1": "^1.1.1"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
