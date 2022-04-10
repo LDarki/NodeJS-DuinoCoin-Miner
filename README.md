@@ -8,13 +8,23 @@ Install the dependencies
 npm i
 ```
 
-****
-### Arguments:
-* **Username** -> *Your username*
+Run the miner
+```
+node index.js
+```
 
-* **Threads** -> *Number of threads to use*
+Notes:
 
-**You can use miner from the command line like this:**
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `node index.js 'username' 'number of threads'`
+- Default config file:
+```
+username=LDarki
+mining_key=
+hashlib=js-sha1
+threads=2
+```
 
-****
+- You can test for the best hash lib using this command:
+```
+node testLib.js
+```
+In order to use that script you need to have the config.ini file in the same directory.

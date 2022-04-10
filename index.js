@@ -2,73 +2,44 @@ const { PromiseSocket } = require("promise-socket");
 const cluster = require("cluster");
 const net = require("net");
 const RL = require("readline");
-const fetch = require('node-fetch');
 const utils = require("./src/utils.js");
+const fs = require('fs');
+const ini = require('ini');
+const path = require("path");
+const CONFIG_FILE = path.join(__dirname, "config.ini");
 
-const sha1 = require("js-sha1");
-const jsSha1 = require("sha1");
-const crypto = require('crypto');
-const Benchmark = require("benchmark");
-const Rusha = require('rusha');
-const Hashes = require('jshashes')
+let user = "",
+    processes = 0,
+    hashlib = "",
+    mining_key = "",
+    config = {};
 
-const suite = new Benchmark.Suite;
-
-let lastPool = "",
-    user = "",
-    processes = 2,
-    hashlib = "js-sha1";
-
-console.clear();
-
-const args = process.argv.slice(2);
-
-if (!args[0] || !args[1]) return console.log("Error, please run [node index.js username threads]");
-
-user = args[0];
-processes = args[1];
-console.log("Miner Started for user (" + user + ") with " + processes + " threads");
-
-const testLibs = async () => {
+const loadConfig = async () => {
     return new Promise((resolve, reject) => {
-        console.log("Testing hashing libs...");
-        const testString = "someKey" + ":someValue".repeat(50);
-        console.log(`Test string is ${testString.length} chars long`);
+        if(fs.existsSync(CONFIG_FILE)) {
+            fs.readFile(CONFIG_FILE, 'utf-8', (err, data) => {
+                if (err) throw err;
+                config = ini.parse(data);
+                resolve(config);
+            });
+        } else {
+            console.log("Config file not found");
 
-        suite
-        .add('js-sha1', function() {
-            sha1(testString);
-        })
-        .add('node crypto', function() {
-            crypto.createHash('sha1').update(testString).digest('hex');
-        })
-        .add('sha1', function() {
-            jsSha1(testString);
-        })
-        .add("rusha", function() {
-            Rusha.createHash().update(testString).digest('hex'); 
-        })
-        .add("jshashes", function() {
-            new Hashes.SHA1().hex(testString)
-        })
-        .on('cycle', function(event) {
-            console.log(String(event.target));
-        })
-        .on('complete', function() {
-            console.log('Fastest is ' + this.filter('fastest').map('name'));
-            hashlib = this.filter('fastest').map('name');
-            resolve(hashlib);
-        })
-        .run({ 'async': true });
+            let configData = {
+                "username": "LDarki",
+                "mining_key": "None",
+                "hashlib": "js-sha1",
+                "threads": 2
+            };
+
+            config = configData;
+
+            fs.writeFile(CONFIG_FILE, ini.stringify(configData), (err) => {
+                if(err) throw err;
+                resolve(config);
+            });
+        };
     });
-};
-
-const _sha1 = (str) => {
-    if (hashlib == "rusha") return Rusha.createHash().update(str).digest('hex');
-    if (hashlib == "sha1") return jsSha1(str);
-    if (hashlib == "node crypto") return crypto.createHash('sha1').update(str).digest('hex');
-    if (hashlib == "jshashes") return new Hashes.SHA1().hex(str);
-    return sha1(str);
 };
 
 const printData = (threads) => {
@@ -105,15 +76,15 @@ const printData = (threads) => {
     rows = [];
 };
 
-const findNumber = (prev, toFind, diff) => {
+const findNumber = (prev, toFind, diff, data, socket) => {
     return new Promise((resolve, reject) => {
         for (let i = 0; i < 100 * diff + 1; i++) {
-            let hash = _sha1(prev + i);
+            let hash = utils._sha1(hashlib, (prev + i));
 
             data.hashes = data.hashes + 1;
 
             if (hash == toFind) {
-                socket.write(i.toString() + ",NodeJS Miner v2.0");
+                socket.write(i.toString() + ",NodeJS Miner v3.0");
                 resolve();
                 break;
             }
@@ -121,106 +92,123 @@ const findNumber = (prev, toFind, diff) => {
     });
 };
 
-const startMining = async () => {
+const startMining = async (socket, data) => {
     // start the mining process
+    let promiseSocket = new PromiseSocket(socket);
+    promiseSocket.setTimeout(5000);
     while (true) {
-        socket.write("JOB," + user + ",MEDIUM");
-        let job = await promiseSocket.read();
-        job = job.split(",");
+        try {
+            setTimeout(async () => {
+                socket.write("JOB," + user + ",MEDIUM," + mining_key);
+                let job = await promiseSocket.read();
 
-        const prev = job[0];
-        const toFind = job[1];
-        const diff = job[2];
+                console.log(job);
+                job = job.split(",");
 
-        await findNumber(prev, toFind, diff);
-        const str = await promiseSocket.read();
+                const prev = job[0];
+                const toFind = job[1];
+                const diff = job[2];
 
-        if (str.includes("BAD")) {
-            data.rejected = data.rejected + 1;
-        } else {
-            data.accepted = data.accepted + 1;
+                await findNumber(prev, toFind, diff, data, socket);
+                const str = await promiseSocket.read();
+
+                if (str.includes("BAD")) {
+                    data.rejected = data.rejected + 1;
+                } else {
+                    data.accepted = data.accepted + 1;
+                }
+                process.send(data);
+                data.hashes = 0;
+            }, 500);
         }
-        process.send(data);
-        data.hashes = 0;
+        catch (err) {
+            console.log(`[${data.workerId}] Error while mining: ` + err);
+            break;
+        }
     }
 };
 
 if (cluster.isMaster) {
     let threads = [];
 
-    for (let i = 0; i < processes; i++) {
-        let worker = cluster.fork();
+    loadConfig().then((cfg) => {
 
-        let data = {};
-        data.hashes = 0;
-        data.rejected = 0;
-        data.accepted = 0;
+        user = cfg.username;
+        processes = cfg.threads;
+        hashlib = cfg.hashlib;
+        mining_key = cfg.mining_key || "";
 
-        threads.push(data);
+        console.log("Miner Started for user (" + user + ") with " + processes + " threads");
 
-        worker.on("message", (msg) => {
-            threads[msg.workerId].hashes = msg.hashes;
-            threads[msg.workerId].rejected = msg.rejected;
-            threads[msg.workerId].accepted = msg.accepted;
-            printData(threads);
-        });
-    }
-    return;
-}
+        for (let i = 0; i < processes; i++) {
+            let worker = cluster.fork();
 
-let data = {};
-data.workerId = cluster.worker.id - 1;
-data.hashes = 0;
-data.rejected = 0;
-data.accepted = 0;
+            console.log("Worker pid-" + worker.process.pid + " started");
 
-let socket = new net.Socket();
-const promiseSocket = new PromiseSocket(socket);
+            let data = {};
+            data.hashes = 0;
+            data.rejected = 0;
+            data.accepted = 0;
 
-socket.setEncoding("utf8");
+            threads.push(data);
 
-testLibs().then((lib) => {
-    hashlib = lib;
-    utils.getPool().then((data) => {
-        lastPool = data;
-        console.log("Connecting to pool: " + data.name);
+            worker.on("message", (msg) => {
+                threads[msg.workerId].hashes = msg.hashes;
+                threads[msg.workerId].rejected = msg.rejected;
+                threads[msg.workerId].accepted = msg.accepted;
+                printData(threads);
+            });
+        }
+    });
+} else {
+
+    loadConfig().then((cfg) => {
+        user = cfg.username;
+        processes = cfg.threads;
+        hashlib = cfg.hashlib;
+        mining_key = cfg.mining_key || "";
+    });
+
+    let workerData = {};
+    workerData.workerId = cluster.worker.id - 1;
+    workerData.hashes = 0;
+    workerData.rejected = 0;
+    workerData.accepted = 0;
+
+    let socket = new net.Socket();
+
+    socket.setEncoding("utf8");
+    socket.setTimeout(5000);
+    socket.connect(14166, "51.158.113.59");
+
+    /*utils.getPool().then((data) => {
+        console.log(`[${workerData.workerId}] ` + "Connecting to pool: " + data.name);
         socket.connect(data.port, data.ip);
     }).catch((err) => {
         console.log(err);
+    });*/
+
+    socket.once("data", (data) => {
+        console.log(`[${workerData.workerId}] ` + "Pool MOTD: " + data);
+        startMining(socket, workerData);
     });
-});
 
-socket.once("data", (data) => {
-    // login process
-    console.log("received data: " + data);
-    if (data.includes("3.")) {
-        startMining();
-    } else {
-        console.log(data);
-        socket.end();
-    }
-});
+    socket.on("end", () => {
+        console.log(`[${workerData.workerId}] ` + "Connection ended");
+    });
 
-socket.on("end", () => {
-    console.log("Connection ended");
-});
-
-socket.on("error", (err) => {
-    if(err.message.code = "ETIMEDOUT")
-    {
-        console.log("Error: Timed Out, trying to connect to get another Pool.");
-        fetch("https://server.duinocoin.com/getPool", { method: "Get" })
-        .then(res => res.json())
-        .then((json) => {
-            let poolJson = json[0];
-            if(json.success == true) {
-                lastPool = poolJson.name;
-                socket.connect(poolJson.port, poolJson.ip);
-            }
-            else {
-                console.log("Error, could not get pool");
-            }
-        });
-    }
-    console.log(`Socket error: ${err}`);
-});
+    socket.on("error", (err) => {
+        if(err.message.code = "ETIMEDOUT")
+        {
+            console.log(`[${workerData.workerId}] ` + "Connection timed out");
+            console.log(`[${workerData.workerId}] ` + "Restarting connection");
+            utils.getPool().then((data) => {
+                console.log(`[${workerData.workerId}] ` + "Connecting to pool: " + data.name);
+                socket.connect(data.port, data.ip);
+            }).catch((err) => {
+                console.log(err);
+            });
+        }
+        console.log(`[${workerData.workerId}] ` + `Socket error: ${err}`);
+    });
+}

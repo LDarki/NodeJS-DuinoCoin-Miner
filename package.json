@@ -5,6 +5,7 @@
   "main": "main.js",
   "dependencies": {
     "benchmark": "^2.1.4",
+    "ini": "^3.0.0",
     "js-sha1": "^0.6.0",
     "jshashes": "^1.0.8",
     "node-fetch": "^2.6.1",
