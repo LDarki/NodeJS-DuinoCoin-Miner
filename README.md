@@ -18,7 +18,7 @@ Notes:
 - Default config file:
 ```
 username=LDarki
-mining_key=
+mining_key=None
 hashlib=js-sha1
 threads=2
 ```

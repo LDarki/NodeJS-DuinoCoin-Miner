@@ -101,7 +101,6 @@ const startMining = async (socket, data) => {
             socket.write("JOB," + user + ",MEDIUM," + mining_key);
             let job = await promiseSocket.read();
 
-            console.log(job);
             job = job.split(",");
 
             const prev = job[0];
@@ -177,15 +176,13 @@ if (cluster.isMaster) {
 
     socket.setEncoding("utf8");
     socket.setTimeout(5000);
-    socket.connect(14166, "51.158.113.59");
-
-    /*utils.getPool().then((data) => {
+ 
+    utils.getPool().then((data) => {
         console.log(`[${workerData.workerId}] ` + "Connecting to pool: " + data.name);
         socket.connect(data.port, data.ip);
     }).catch((err) => {
         console.log(err);
-    });*/
-
+    });
     socket.once("data", (data) => {
         console.log(`[${workerData.workerId}] ` + "Pool MOTD: " + data);
         startMining(socket, workerData);
