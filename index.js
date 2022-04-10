@@ -98,28 +98,26 @@ const startMining = async (socket, data) => {
     promiseSocket.setTimeout(5000);
     while (true) {
         try {
-            setTimeout(async () => {
-                socket.write("JOB," + user + ",MEDIUM," + mining_key);
-                let job = await promiseSocket.read();
+            socket.write("JOB," + user + ",MEDIUM," + mining_key);
+            let job = await promiseSocket.read();
 
-                console.log(job);
-                job = job.split(",");
+            console.log(job);
+            job = job.split(",");
 
-                const prev = job[0];
-                const toFind = job[1];
-                const diff = job[2];
+            const prev = job[0];
+            const toFind = job[1];
+            const diff = job[2];
 
-                await findNumber(prev, toFind, diff, data, socket);
-                const str = await promiseSocket.read();
+            await findNumber(prev, toFind, diff, data, socket);
+            const str = await promiseSocket.read();
 
-                if (str.includes("BAD")) {
-                    data.rejected = data.rejected + 1;
-                } else {
-                    data.accepted = data.accepted + 1;
-                }
-                process.send(data);
-                data.hashes = 0;
-            }, 500);
+            if (str.includes("BAD")) {
+                data.rejected = data.rejected + 1;
+            } else {
+                data.accepted = data.accepted + 1;
+            }
+            process.send(data);
+            data.hashes = 0;
         }
         catch (err) {
             console.log(`[${data.workerId}] Error while mining: ` + err);
