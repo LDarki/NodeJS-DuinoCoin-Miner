@@ -2,7 +2,7 @@
   "name": "duino-coin-nodejs-miner",
   "version": "1.0.0",
   "description": "Duino-Coin NodeJS miner",
-  "main": "main.js",
+  "main": "index.js",
   "dependencies": {
     "benchmark": "^2.1.4",
     "ini": "^3.0.0",
