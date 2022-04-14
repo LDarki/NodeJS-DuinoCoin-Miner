@@ -108,7 +108,7 @@ const startMining = async (socket, data) => {
             const diff = job[2];
 
             await findNumber(prev, toFind, diff, data, socket);
-            const str = await promiseSocket.read();
+            const str = await promiseSocket.read() || "BAD";
 
             if (str.includes("BAD")) {
                 data.rejected = data.rejected + 1;
